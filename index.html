@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Solicitud de contacto</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--fg:#1c1c1a;--mut:#6b6a66;--line:#d9d7d0;--acc:#1f5f4a;--accfg:#fff;--err:#b3261e;--ok:#1f5f4a}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1e1e1c;--fg:#f0eee8;--mut:#a09e97;--line:#3a3935;--acc:#5fb597;--accfg:#10231c;--err:#f2867e;--ok:#5fb597}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+main{max-width:480px;margin:0 auto}
+h1{font-size:1.5rem;line-height:1.25;margin:0 0 6px;text-wrap:balance}
+.sub{color:var(--mut);margin:0 0 20px}
+form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:420px){.row{grid-template-columns:1fr}}
+label{display:grid;gap:4px;font-size:.9rem;font-weight:600}
+label small{font-weight:400;color:var(--mut)}
+input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;min-width:0}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:1px}
+.chk{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:.85rem;color:var(--mut)}
+.chk input{width:auto;margin-top:3px;flex:none}
+button{font:inherit;font-weight:700;background:var(--acc);color:var(--accfg);border:0;border-radius:10px;padding:13px;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.msg{margin:0;font-size:.9rem;min-height:1.2em}
+.msg.err{color:var(--err)}
+.done{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;text-align:center}
+.done h2{margin:0 0 8px;color:var(--ok)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.legal{font-size:.75rem;color:var(--mut);margin-top:14px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="tit">Solicita que te llamemos</h1>
+  <p class="sub">Déjanos tus datos y una persona del equipo se pondrá en contacto contigo.</p>
+
+  <form id="f" novalidate>
+    <div class="row">
+      <label>Nombre<input name="nombre" autocomplete="given-name" maxlength="80" required></label>
+      <label>Apellido<input name="apellido" autocomplete="family-name" maxlength="120" required></label>
+    </div>
+    <div class="row">
+      <label>Edad<input name="edad" type="number" inputmode="numeric" min="18" max="120" required></label>
+      <label>Teléfono <small>(opcional)</small><input name="telefono" type="tel" autocomplete="tel" maxlength="25"></label>
+    </div>
+    <label>Email<input name="email" type="email" autocomplete="email" maxlength="160" required></label>
+    <label>¿Cuándo te viene bien que te llamemos?
+      <select name="franja" required>
+        <option value="">Elige una franja</option>
+        <option>Mañana (9:00–13:00)</option>
+        <option>Mediodía (13:00–16:00)</option>
+        <option>Tarde (16:00–20:00)</option>
+        <option>Me da igual</option>
+      </select>
+    </label>
+    <div class="hp" aria-hidden="true"><label>Web<input name="web" tabindex="-1" autocomplete="off"></label></div>
+    <label class="chk"><input type="checkbox" name="ok" required>
+      <span id="cons"></span></label>
+    <button id="b" type="submit">Enviar solicitud</button>
+    <p class="msg" id="m" role="status"></p>
+  </form>
+
+  <div class="done" id="d" hidden>
+    <h2>Recibido</h2>
+    <p>Gracias. Una persona del equipo te contactará en la franja que has elegido.</p>
+  </div>
+
+  <p class="legal" id="legal"></p>
+</main>
+
+<script>
+(function(){
+  var URL_SB='https://ymcuqdvsvmarochazeua.supabase.co';
+  var KEY='sb_publishable_O0JPLQTPAfzzCrut7_o1Wg_M1H_cAPG';
+  var q=new URLSearchParams(location.search);
+  var UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  var pid=(q.get('p')||'').trim();
+  var neg=(q.get('n')||'el negocio').slice(0,80);
+  var ref=(q.get('ref')||'').slice(0,60)||null;
+  var f=document.getElementById('f'),m=document.getElementById('m'),b=document.getElementById('b');
+  document.getElementById('cons').textContent='Acepto que '+neg+' trate mis datos para contactarme sobre mi solicitud. Puedo pedir que los borren en cualquier momento.';
+  document.getElementById('legal').textContent='Responsable del tratamiento: '+neg+'. Finalidad: gestionar tu solicitud de contacto. Base legal: tu consentimiento. Conservación: el tiempo necesario para atenderla. Derechos de acceso, rectificación y supresión: dirígete a '+neg+'.';
+  document.getElementById('tit').textContent='Solicita que te llamemos — '+neg;
+  document.title='Solicitud de contacto — '+neg;
+  function err(t){m.textContent=t;m.className='msg err'}
+  if(!UUID.test(pid)){f.hidden=true;err('Este enlace no es válido. Pide uno nuevo por WhatsApp.');return}
+  f.addEventListener('submit',function(e){
+    e.preventDefault();m.textContent='';m.className='msg';
+    var d=new FormData(f);
+    if(d.get('web')){return}
+    var nombre=(d.get('nombre')||'').trim(),apellido=(d.get('apellido')||'').trim(),
+        edad=parseInt(d.get('edad'),10),email=(d.get('email')||'').trim(),
+        tel=(d.get('telefono')||'').trim(),fr=d.get('franja')||'';
+    if(!nombre||!apellido)return err('Escribe tu nombre y apellido.');
+    if(!(edad>=18&&edad<=120))return err('Debes ser mayor de 18 años.');
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return err('Revisa el email.');
+    if(tel&&!/^[0-9+()\s-]{6,25}$/.test(tel))return err('Revisa el teléfono.');
+    if(!fr)return err('Elige una franja para la llamada.');
+    if(!f.ok.checked)return err('Necesitas aceptar el tratamiento de datos.');
+    b.disabled=true;b.textContent='Enviando…';
+    fetch(URL_SB+'/rest/v1/solicitudes',{
+      method:'POST',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({proyecto_id:pid,nombre:nombre,apellido:apellido,edad:edad,email:email,
+        telefono:tel||null,franja_llamada:fr,ref:ref,consentimiento:true})
+    }).then(function(r){
+      if(r.ok){f.hidden=true;document.getElementById('d').hidden=false;return}
+      err(r.status===429||r.status===403?'Demasiadas solicitudes. Inténtalo en unos minutos.':'No se pudo enviar. Inténtalo de nuevo.');
+      b.disabled=false;b.textContent='Enviar solicitud';
+    }).catch(function(){err('Sin conexión. Inténtalo de nuevo.');b.disabled=false;b.textContent='Enviar solicitud'});
+  });
+})();
+</script>
+</body>
+</html>
