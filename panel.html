@@ -68,7 +68,7 @@ dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
 (function(){
   var SB='https://ymcuqdvsvmarochazeua.supabase.co';
   var KEY='sb_publishable_O0JPLQTPAfzzCrut7_o1Wg_M1H_cAPG';
-  var PID='00000000-0000-0000-0000-00000000c0de';
+  var PID=(new URLSearchParams(location.search).get('p')||'').trim();if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(PID))PID='';
   var tok=null,filtro='nueva';
   var $=function(i){return document.getElementById(i)};
   try{tok=sessionStorage.getItem('tk')}catch(e){}
@@ -97,7 +97,7 @@ dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
 
   function carga(){
     $('ae').textContent='';
-    var q='/rest/v1/solicitudes?select=*&proyecto_id=eq.'+PID+'&order=creado.desc&limit=200';
+    var q='/rest/v1/solicitudes?select=*'+(PID?'&proyecto_id=eq.'+PID:'')+'&order=creado.desc&limit=200';
     if(filtro!=='todas')q+='&estado=eq.'+filtro;
     fetch(SB+q,{headers:H()}).then(function(r){
       if(r.status===401){salir();$('le').textContent='La sesión ha caducado. Entra de nuevo.';return null}
