@@ -114,11 +114,13 @@ dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
     d.forEach(function(s){
       var c=el('article','box');
       var top=el('div','top');
-      top.appendChild(el('span','name',s.nombre+' '+s.apellido+' · '+s.edad+' años'));
+      top.appendChild(el('span','name',s.nombre+(s.apellido?' '+s.apellido:'')+(s.edad?' · '+s.edad+' años':'')));
       top.appendChild(el('span','tag '+s.estado,s.estado));
       c.appendChild(top);
       var dl=el('dl');
       function f(k,v){dl.appendChild(el('dt',null,k));dl.appendChild(el('dd',null,v||'sin dato'))}
+      f('Origen',s.origen==='voz'?'Llamada de voz':'Formulario');
+      if(s.dia_preferido)f('Día',s.dia_preferido);
       f('Llamar',s.franja_llamada);
       f('Teléfono',s.telefono);
       f('Email',s.email);
