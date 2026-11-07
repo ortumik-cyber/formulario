@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Panel del monitor</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--fg:#1c1c1a;--mut:#6b6a66;--line:#d9d7d0;--acc:#1f5f4a;--accfg:#fff;--err:#b3261e;--new:#b45309;--okbg:#e6f2ec}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1e1e1c;--fg:#f0eee8;--mut:#a09e97;--line:#3a3935;--acc:#5fb597;--accfg:#10231c;--err:#f2867e;--new:#f5b85a;--okbg:#1b2b25}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+main{max-width:720px;margin:0 auto}
+h1{font-size:1.4rem;margin:0}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.bar{display:flex;gap:8px;flex-wrap:wrap}
+input,textarea,button{font:inherit;color:var(--fg)}
+input,textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+button{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer}
+button.p{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-weight:700}
+button.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+#login{max-width:380px;margin:40px auto;display:grid;gap:12px}
+.err{color:var(--err);min-height:1.2em;margin:0;font-size:.9rem}
+.list{display:grid;gap:12px;margin-top:14px}
+.top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.name{font-weight:700}
+.tag{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid var(--line)}
+.tag.nueva{color:var(--new);border-color:var(--new)}
+.tag.atendida{color:var(--acc);border-color:var(--acc)}
+.tag.descartada{color:var(--mut)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:10px 0;font-size:.92rem}
+dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
+.act{display:grid;gap:8px;margin-top:8px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.mut{color:var(--mut);font-size:.9rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <form id="login" class="box">
+    <h1>Panel del monitor</h1>
+    <input id="em" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="pw" type="password" placeholder="Contraseña" autocomplete="current-password" required>
+    <button class="p" type="submit">Entrar</button>
+    <p class="err" id="le" role="status"></p>
+  </form>
+
+  <section id="app" hidden>
+    <header>
+      <h1>Solicitudes</h1>
+      <div class="bar">
+        <button id="fN" class="on">Nuevas</button>
+        <button id="fA">Atendidas</button>
+        <button id="fT">Todas</button>
+        <button id="rf">Actualizar</button>
+        <button id="out">Salir</button>
+      </div>
+    </header>
+    <p class="mut" id="cnt"></p>
+    <p class="err" id="ae" role="status"></p>
+    <div class="list" id="ls"></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  var SB='https://ymcuqdvsvmarochazeua.supabase.co';
+  var KEY='sb_publishable_O0JPLQTPAfzzCrut7_o1Wg_M1H_cAPG';
+  var PID='00000000-0000-0000-0000-00000000c0de';
+  var tok=null,filtro='nueva';
+  var $=function(i){return document.getElementById(i)};
+  try{tok=sessionStorage.getItem('tk')}catch(e){}
+
+  function H(){return{'apikey':KEY,'Authorization':'Bearer '+(tok||KEY),'Content-Type':'application/json'}}
+  function show(on){$('login').hidden=on;$('app').hidden=!on}
+
+  $('login').addEventListener('submit',function(e){
+    e.preventDefault();$('le').textContent='';
+    fetch(SB+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email:$('em').value.trim(),password:$('pw').value})})
+    .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
+    .then(function(x){
+      if(!x.ok||!x.j.access_token){$('le').textContent='Email o contraseña incorrectos.';return}
+      tok=x.j.access_token;try{sessionStorage.setItem('tk',tok)}catch(e){}
+      $('pw').value='';show(true);carga();
+    }).catch(function(){$('le').textContent='Sin conexión.'});
+  });
+
+  function salir(){tok=null;try{sessionStorage.removeItem('tk')}catch(e){}show(false)}
+  $('out').onclick=salir;
+  $('rf').onclick=carga;
+  [['fN','nueva'],['fA','atendida'],['fT','todas']].forEach(function(p){
+    $(p[0]).onclick=function(){filtro=p[1];['fN','fA','fT'].forEach(function(i){$(i).className=''});$(p[0]).className='on';carga()}
+  });
+
+  function carga(){
+    $('ae').textContent='';
+    var q='/rest/v1/solicitudes?select=*&proyecto_id=eq.'+PID+'&order=creado.desc&limit=200';
+    if(filtro!=='todas')q+='&estado=eq.'+filtro;
+    fetch(SB+q,{headers:H()}).then(function(r){
+      if(r.status===401){salir();$('le').textContent='La sesión ha caducado. Entra de nuevo.';return null}
+      return r.json();
+    }).then(function(d){if(d)pinta(d)}).catch(function(){$('ae').textContent='No se pudo cargar.'});
+  }
+
+  function el(t,c,x){var n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n}
+
+  function pinta(d){
+    var ls=$('ls');ls.textContent='';
+    $('cnt').textContent=d.length+(d.length===1?' solicitud':' solicitudes');
+    if(!d.length){ls.appendChild(el('p','mut','No hay solicitudes en este filtro.'));return}
+    d.forEach(function(s){
+      var c=el('article','box');
+      var top=el('div','top');
+      top.appendChild(el('span','name',s.nombre+' '+s.apellido+' · '+s.edad+' años'));
+      top.appendChild(el('span','tag '+s.estado,s.estado));
+      c.appendChild(top);
+      var dl=el('dl');
+      function f(k,v){dl.appendChild(el('dt',null,k));dl.appendChild(el('dd',null,v||'sin dato'))}
+      f('Llamar',s.franja_llamada);
+      f('Teléfono',s.telefono);
+      f('Email',s.email);
+      f('Conversación',s.ref);
+      f('Recibida',new Date(s.creado).toLocaleString('es-ES'));
+      if(s.atendida_en)f('Atendida',new Date(s.atendida_en).toLocaleString('es-ES'));
+      c.appendChild(dl);
+      var act=el('div','act');
+      var nota=el('textarea');nota.rows=2;nota.maxLength=500;nota.placeholder='Nota (opcional)';nota.value=s.nota||'';
+      var b=el('div','btns');
+      function bt(txt,cls,fn){var x=el('button',cls,txt);x.onclick=fn;b.appendChild(x)}
+      bt('Guardar nota','',function(){upd(s.id,{nota:nota.value.trim()||null})});
+      if(s.estado!=='atendida')bt('Marcar atendida','p',function(){upd(s.id,{estado:'atendida',atendida_en:new Date().toISOString(),nota:nota.value.trim()||null})});
+      if(s.estado!=='nueva')bt('Volver a nueva','',function(){upd(s.id,{estado:'nueva',atendida_en:null})});
+      if(s.estado!=='descartada')bt('Descartar','',function(){upd(s.id,{estado:'descartada',nota:nota.value.trim()||null})});
+      act.appendChild(nota);act.appendChild(b);c.appendChild(act);
+      ls.appendChild(c);
+    });
+  }
+
+  function upd(id,body){
+    $('ae').textContent='';
+    var h=H();h['Prefer']='return=minimal';
+    fetch(SB+'/rest/v1/solicitudes?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:h,body:JSON.stringify(body)})
+    .then(function(r){
+      if(r.status===401){salir();$('le').textContent='La sesión ha caducado. Entra de nuevo.';return}
+      if(!r.ok){$('ae').textContent='No se pudo guardar.';return}
+      carga();
+    }).catch(function(){$('ae').textContent='Sin conexión.'});
+  }
+
+  if(tok){show(true);carga()}else show(false);
+})();
+</script>
+</body>
+</html>
