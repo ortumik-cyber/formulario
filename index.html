@@ -65,11 +65,6 @@ button:disabled{opacity:.6;cursor:wait}
         <option>Me da igual</option>
       </select>
     </label>
-    <label>¿Qué necesitas? <small>(opcional)</small><input name="motivo" maxlength="100" placeholder="Ej.: una revisión, una duda sobre un tratamiento"></label>
-    <label>Cuéntanos lo que quieras <small>(opcional, máximo 150 palabras)</small>
-      <textarea name="mensaje" rows="4" maxlength="2000"></textarea>
-      <small class="cw" id="cw">0 / 150 palabras</small>
-    </label>
     <label>¿Qué necesitas? <small>(opcional)</small><input name="motivo" maxlength="100" placeholder="Por ejemplo: una limpieza, una revisión…"></label>
     <label>Cuéntanos lo que quieras <small>(opcional, máximo 150 palabras)</small>
       <textarea name="mensaje" maxlength="1500"></textarea>
@@ -85,7 +80,7 @@ button:disabled{opacity:.6;cursor:wait}
 
   <div class="done" id="d" hidden>
     <h2>Recibido</h2>
-    <p>Gracias. Una persona del equipo te contactará en la franja que has elegido.</p>
+    <p>Gracias. Una persona del equipo te contactará.</p>
   </div>
 
   <p class="legal" id="legal"></p>
@@ -105,9 +100,6 @@ button:disabled{opacity:.6;cursor:wait}
   document.getElementById('legal').textContent='Responsable del tratamiento: '+neg+'. Finalidad: gestionar tu solicitud de contacto. Base legal: tu consentimiento. Conservación: el tiempo necesario para atenderla. Derechos de acceso, rectificación y supresión: dirígete a '+neg+'.';
   document.getElementById('tit').textContent='Solicita que te llamemos — '+neg;
   document.title='Solicitud de contacto — '+neg;
-  var ta=f.mensaje,cw=document.getElementById('cw');
-  function words(t){t=t.trim();return t?t.split(/\s+/).length:0}
-  ta.addEventListener('input',function(){var n=words(ta.value);cw.textContent=n+' / 150 palabras';cw.className='cw'+(n>150?' over':'')});
   function palabras(t){t=(t||'').trim();return t?t.split(/\s+/).length:0}
   var ta=f.mensaje,cw=document.getElementById('cw');
   ta.addEventListener('input',function(){var n=palabras(ta.value);cw.textContent=n+' de 150 palabras';cw.className='cw'+(n>150?' over':'')});
