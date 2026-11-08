@@ -55,6 +55,8 @@ dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
         <button id="fA">Atendidas</button>
         <button id="fT">Todas</button>
         <button id="rf">Actualizar</button>
+        <input id="mes" type="month" aria-label="Mes" style="width:auto">
+        <button id="dl" class="p">Descargar mes</button>
         <button id="out">Salir</button>
       </div>
     </header>
@@ -87,6 +89,44 @@ dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
       $('pw').value='';show(true);carga();
     }).catch(function(){$('le').textContent='Sin conexión.'});
   });
+
+  var d0=new Date();$('mes').value=d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0');
+
+  function cel(v){
+    if(v==null)return '';
+    v=String(v).replace(/\r?\n/g,' ');
+    if(/^[=+\-@\t]/.test(v))v="'"+v;
+    return '"'+v.replace(/"/g,'""')+'"';
+  }
+  function fch(v){return v?new Date(v).toLocaleString('es-ES'):''}
+  function descarga(){
+    $('ae').textContent='';
+    var m=($('mes').value||'').split('-');
+    if(m.length!==2){$('ae').textContent='Elige un mes.';return}
+    var a=new Date(+m[0],+m[1]-1,1),b=new Date(+m[0],+m[1],1);
+    var q='/rest/v1/solicitudes?select=*'+(PID?'&proyecto_id=eq.'+PID:'')+
+      '&creado=gte.'+encodeURIComponent(a.toISOString())+'&creado=lt.'+encodeURIComponent(b.toISOString())+
+      '&order=numero.asc&limit=5000';
+    fetch(SB+q,{headers:H()}).then(function(r){
+      if(r.status===401){salir();$('le').textContent='La sesión ha caducado. Entra de nuevo.';return null}
+      return r.json();
+    }).then(function(d){
+      if(!d)return;
+      if(!d.length){$('ae').textContent='No hay tickets en ese mes.';return}
+      var cab=['Ticket','Estado','Recibida','Atendida','Nombre','Apellido','Edad','Teléfono','Email','Llamar','Necesita','Mensaje','Nota','Origen'];
+      var fil=d.map(function(s){return [
+        'T-'+String(s.numero).padStart(4,'0'),s.estado==='nueva'?'SIN ATENDER':s.estado==='atendida'?'ATENDIDA':'DESCARTADA',
+        fch(s.creado),fch(s.atendida_en),s.nombre,s.apellido,s.edad,s.telefono,s.email,s.franja_llamada,s.motivo,s.mensaje,s.nota,s.origen
+      ].map(cel).join(';')});
+      var csv='\ufeff'+cab.map(cel).join(';')+'\r\n'+fil.join('\r\n');
+      var u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+      var l=document.createElement('a');l.href=u;l.download='tickets-'+$('mes').value+'.csv';
+      document.body.appendChild(l);l.click();l.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000);
+      var n=d.filter(function(s){return s.estado==='nueva'}).length,at=d.filter(function(s){return s.estado==='atendida'}).length;
+      $('cnt').textContent=d.length+' tickets en el mes: '+at+' atendidos, '+n+' sin atender, '+(d.length-at-n)+' descartados';
+    }).catch(function(){$('ae').textContent='No se pudo descargar.'});
+  }
+  $('dl').onclick=descarga;
 
   function salir(){tok=null;try{sessionStorage.removeItem('tk')}catch(e){}show(false)}
   $('out').onclick=salir;
