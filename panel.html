@@ -114,7 +114,7 @@ dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
     d.forEach(function(s){
       var c=el('article','box');
       var top=el('div','top');
-      top.appendChild(el('span','name',(s.nombre||'Sin nombre')+(s.apellido?' '+s.apellido:'')+(s.edad?' · '+s.edad+' años':'')));
+      top.appendChild(el('span','name','T-'+String(s.numero).padStart(4,'0')+' · '+(s.nombre||'Sin nombre')+(s.apellido?' '+s.apellido:'')+(s.edad?' · '+s.edad+' años':'')));
       top.appendChild(el('span','tag '+s.estado,s.estado));
       c.appendChild(top);
       var dl=el('dl');
