@@ -24,8 +24,10 @@ form{background:var(--card);border:1px solid var(--line);border-radius:14px;padd
 @media(max-width:420px){.row{grid-template-columns:1fr}}
 label{display:grid;gap:4px;font-size:.9rem;font-weight:600}
 label small{font-weight:400;color:var(--mut)}
-input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;min-width:0}
-input:focus,select:focus{outline:2px solid var(--acc);outline-offset:1px}
+textarea{resize:vertical;min-height:96px}
+.cw.over{color:var(--err);font-weight:600}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:1px}
 .chk{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:.85rem;color:var(--mut)}
 .chk input{width:auto;margin-top:3px;flex:none}
 button{font:inherit;font-weight:700;background:var(--acc);color:var(--accfg);border:0;border-radius:10px;padding:13px;cursor:pointer}
@@ -46,23 +48,34 @@ button:disabled{opacity:.6;cursor:wait}
 
   <form id="f" novalidate>
     <div class="row">
-      <label>Nombre<input name="nombre" autocomplete="given-name" maxlength="80" required></label>
-      <label>Apellido<input name="apellido" autocomplete="family-name" maxlength="120" required></label>
+      <label>Nombre <small>(opcional)</small><input name="nombre" autocomplete="given-name" maxlength="80"></label>
+      <label>Apellido <small>(opcional)</small><input name="apellido" autocomplete="family-name" maxlength="120"></label>
     </div>
     <div class="row">
-      <label>Edad<input name="edad" type="number" inputmode="numeric" min="18" max="120" required></label>
+      <label>Edad <small>(opcional)</small><input name="edad" type="number" inputmode="numeric" min="18" max="120"></label>
       <label>Teléfono <small>(opcional)</small><input name="telefono" type="tel" autocomplete="tel" maxlength="25"></label>
     </div>
-    <label>Email<input name="email" type="email" autocomplete="email" maxlength="160" required></label>
-    <label>¿Cuándo te viene bien que te llamemos?
-      <select name="franja" required>
-        <option value="">Elige una franja</option>
+    <label>Email <small>(opcional)</small><input name="email" type="email" autocomplete="email" maxlength="160"></label>
+    <label>¿Cuándo te viene bien que te llamemos? <small>(opcional)</small>
+      <select name="franja">
+        <option value="">Sin preferencia</option>
         <option>Mañana (9:00–13:00)</option>
         <option>Mediodía (13:00–16:00)</option>
         <option>Tarde (16:00–20:00)</option>
         <option>Me da igual</option>
       </select>
     </label>
+    <label>¿Qué necesitas? <small>(opcional)</small><input name="motivo" maxlength="100" placeholder="Ej.: una revisión, una duda sobre un tratamiento"></label>
+    <label>Cuéntanos lo que quieras <small>(opcional, máximo 150 palabras)</small>
+      <textarea name="mensaje" rows="4" maxlength="2000"></textarea>
+      <small class="cw" id="cw">0 / 150 palabras</small>
+    </label>
+    <label>¿Qué necesitas? <small>(opcional)</small><input name="motivo" maxlength="100" placeholder="Por ejemplo: una limpieza, una revisión…"></label>
+    <label>Cuéntanos lo que quieras <small>(opcional, máximo 150 palabras)</small>
+      <textarea name="mensaje" maxlength="1500"></textarea>
+      <span class="cw" id="cw" aria-live="polite">0 de 150 palabras</span>
+    </label>
+    <p class="sub" style="margin:0;font-size:.85rem">Déjanos al menos un teléfono o un email para poder contactarte.</p>
     <div class="hp" aria-hidden="true"><label>Web<input name="web" tabindex="-1" autocomplete="off"></label></div>
     <label class="chk"><input type="checkbox" name="ok" required>
       <span id="cons"></span></label>
@@ -92,6 +105,12 @@ button:disabled{opacity:.6;cursor:wait}
   document.getElementById('legal').textContent='Responsable del tratamiento: '+neg+'. Finalidad: gestionar tu solicitud de contacto. Base legal: tu consentimiento. Conservación: el tiempo necesario para atenderla. Derechos de acceso, rectificación y supresión: dirígete a '+neg+'.';
   document.getElementById('tit').textContent='Solicita que te llamemos — '+neg;
   document.title='Solicitud de contacto — '+neg;
+  var ta=f.mensaje,cw=document.getElementById('cw');
+  function words(t){t=t.trim();return t?t.split(/\s+/).length:0}
+  ta.addEventListener('input',function(){var n=words(ta.value);cw.textContent=n+' / 150 palabras';cw.className='cw'+(n>150?' over':'')});
+  function palabras(t){t=(t||'').trim();return t?t.split(/\s+/).length:0}
+  var ta=f.mensaje,cw=document.getElementById('cw');
+  ta.addEventListener('input',function(){var n=palabras(ta.value);cw.textContent=n+' de 150 palabras';cw.className='cw'+(n>150?' over':'')});
   function err(t){m.textContent=t;m.className='msg err'}
   if(!UUID.test(pid)){f.hidden=true;err('Este enlace no es válido. Pide uno nuevo por WhatsApp.');return}
   f.addEventListener('submit',function(e){
@@ -100,19 +119,20 @@ button:disabled{opacity:.6;cursor:wait}
     if(d.get('web')){return}
     var nombre=(d.get('nombre')||'').trim(),apellido=(d.get('apellido')||'').trim(),
         edad=parseInt(d.get('edad'),10),email=(d.get('email')||'').trim(),
-        tel=(d.get('telefono')||'').trim(),fr=d.get('franja')||'';
-    if(!nombre||!apellido)return err('Escribe tu nombre y apellido.');
-    if(!(edad>=18&&edad<=120))return err('Debes ser mayor de 18 años.');
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return err('Revisa el email.');
+        tel=(d.get('telefono')||'').trim(),fr=d.get('franja')||'',
+        motivo=(d.get('motivo')||'').trim(),mensaje=(d.get('mensaje')||'').trim();
+    if(!isNaN(edad)&&!(edad>=18&&edad<=120))return err('Debes ser mayor de 18 años.');
+    if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return err('Revisa el email.');
     if(tel&&!/^[0-9+()\s-]{6,25}$/.test(tel))return err('Revisa el teléfono.');
-    if(!fr)return err('Elige una franja para la llamada.');
+    if(palabras(mensaje)>150)return err('El mensaje supera las 150 palabras.');
+    if(!tel&&!email)return err('Déjanos un teléfono o un email para contactarte.');
     if(!f.ok.checked)return err('Necesitas aceptar el tratamiento de datos.');
     b.disabled=true;b.textContent='Enviando…';
     fetch(URL_SB+'/rest/v1/solicitudes',{
       method:'POST',
       headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({proyecto_id:pid,nombre:nombre,apellido:apellido,edad:edad,email:email,
-        telefono:tel||null,franja_llamada:fr,ref:ref,consentimiento:true})
+      body:JSON.stringify({proyecto_id:pid,nombre:nombre||null,apellido:apellido||null,edad:isNaN(edad)?null:edad,email:email||null,
+        telefono:tel||null,franja_llamada:fr||null,motivo:motivo||null,mensaje:mensaje||null,ref:ref,consentimiento:true})
     }).then(function(r){
       if(r.ok){f.hidden=true;document.getElementById('d').hidden=false;return}
       err(r.status===429||r.status===403?'Demasiadas solicitudes. Inténtalo en unos minutos.':'No se pudo enviar. Inténtalo de nuevo.');
